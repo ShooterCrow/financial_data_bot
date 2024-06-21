@@ -6,6 +6,10 @@ from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import json
+# import os
+from keep_alive import keep_alive
+
+# bot = Bot(TOKEN)
 
 # Define the allUSDpairs array globally in Yahoo Finance format
 allUSDpairs = ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "XAU/USD"]
