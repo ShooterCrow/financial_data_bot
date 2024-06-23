@@ -1,15 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
-import time
 import asyncio
 from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, JobQueue
 import json
-# import os
 from keep_alive import keep_alive
-
-# bot = Bot(TOKEN)
 
 # Define the allUSDpairs array globally in Yahoo Finance format
 allUSDpairs = ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "XAU/USD"]
@@ -188,39 +184,34 @@ def send_to_user():
     decision_messages = [f"Event: {decision['event']}\nDecision: {decision['decision']}" for decision in determinedDecision]
     return "\n\n".join(decision_messages)
 
-async def continuous_data_processing():
-    while True:
-        prices = get_current_prices()
-        for pair, currentPrice in prices.items():
-            trade_obj = {
-                "pairname": pair,
-                "currentPrice": currentPrice,
-                "price24HoursLater": None,
-                "profitLoss": None
-            }
-            tradeHistory.append(trade_obj)
-        await asyncio.sleep(60)
+async def continuous_data_processing(context: ContextTypes.DEFAULT_TYPE):
+    prices = get_current_prices()
+    for pair, currentPrice in prices.items():
+        trade_obj = {
+            "pairname": pair,
+            "currentPrice": currentPrice,
+            "price24HoursLater": None,
+            "profitLoss": None
+        }
+        tradeHistory.append(trade_obj)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"""👋 Hey *{update.message.from_user.first_name}*, Welcome to the *ShooterCrowFX Bot!* 🎉\n\n 🔔 ShooterCrowFX analysis fundamental events and gives you a clear direction of BUY or SELL, a couple times a month so watch out regularly 🚀.\n💡 Simply click the 'Receive Signals 🔴' button below to start getting signals, when available.\n📊 Stay ahead of the market trends and never miss a profitable opportunity.\n💬 Click 'Receive Signals 🔴' to get started!\n
-PS. No Technical Analysis Involed\n💡Always ON Recieve Signals on the First Friday of Every Month.""",parse_mode='Markdown')
+PS. No Technical Analysis Involved\n💡Always ON Receive Signals on the First Friday of Every Month.""", parse_mode='Markdown')
 
     # Introduce a delay before sending the first message
     await asyncio.sleep(2)
 
     await update.message.reply_text("""ShooterCrowFX 🤖 Welcomes You Once More!""",
-        parse_mode='Markdown',
-        reply_markup=ReplyKeyboardMarkup(
-            [[KeyboardButton("Not Receiving Signals. 🔴 (Click to Start)")]],
-            resize_keyboard=True
-        )
-    )
+                                    parse_mode='Markdown',
+                                    reply_markup=ReplyKeyboardMarkup(
+                                        [[KeyboardButton("Not Receiving Signals. 🔴 (Click to Start)")]],
+                                        resize_keyboard=True
+                                    )
+                                    )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"""Hello {update.message.from_user.first_name}, how can I help you?""")
-
-async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('This is a custom command')
 
 def handle_response(text: str) -> str:
     def trade_history_finder():
@@ -285,23 +276,28 @@ async def send_signal_reminder(update: Update, context: ContextTypes.DEFAULT_TYP
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f'Update {update} caused error {context.error}')
 
-if __name__ == '__main__':
+def main():
+    keep_alive()
+
     print('Starting bot...')
-    
     app = Application.builder().token(TOKEN).build()
 
-    # Start the continuous data processing task within the event loop
-    app.job_queue.run_repeating(continuous_data_processing, interval=60, first=0)
+    job_queue = JobQueue()
+    job_queue.set_application(app)
+    job_queue.run_repeating(continuous_data_processing, interval=60, first=0)
 
     # Commands
     app.add_handler(CommandHandler('start', start_command))
     app.add_handler(CommandHandler('help', help_command))
 
     # Messages
-    app.add_handler(MessageHandler(filters.TEXT, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Errors
     app.add_error_handler(error)
 
     print('Polling...')
-    app.run_polling(poll_interval=3)
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
