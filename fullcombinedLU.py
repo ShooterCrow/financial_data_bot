@@ -5,7 +5,6 @@ from typing import Final
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, JobQueue
 import json
-from keep_alive import keep_alive
 
 # Define the allUSDpairs array globally in Yahoo Finance format
 allUSDpairs = ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "XAU/USD"]
@@ -277,7 +276,6 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f'Update {update} caused error {context.error}')
 
 def main():
-    keep_alive()
 
     print('Starting bot...')
     app = Application.builder().token(TOKEN).build()
